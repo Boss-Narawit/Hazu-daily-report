@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Daily Report Sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f11;
+    --surface: #1a1a1f;
+    --surface2: #222228;
+    --border: #2e2e38;
+    --border2: #3a3a48;
+    --accent: #c8f060;
+    --accent-dim: #9bbf3a;
+    --accent-bg: rgba(200,240,96,0.07);
+    --text: #f0f0ee;
+    --text2: #9090a0;
+    --text3: #5a5a6a;
+    --danger: #ff5555;
+    --danger-bg: rgba(255,85,85,0.08);
+    --danger-border: rgba(255,85,85,0.35);
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* Header */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,15,17,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .site-header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  .site-header .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+    margin-right: 8px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; } 50% { opacity:0.4; }
+  }
+
+  .header-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  /* Nav tabs */
+  .nav-tabs {
+    display: flex;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    scrollbar-width: none;
+    position: sticky;
+    top: 56px;
+    z-index: 99;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+
+  .nav-tab {
+    flex: 0 0 auto;
+    padding: 12px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .nav-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .nav-tab:hover:not(.active) { color: var(--text2); }
+
+  /* Sections */
+  .page { display: none; padding: 20px 16px 100px; max-width: 600px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .card.danger {
+    border-color: var(--danger-border);
+    background: var(--danger-bg);
+  }
+
+  .card-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+  .card.danger .card-label { color: var(--danger); }
+
+  .warn-banner {
+    display: none;
+    font-size: 12px;
+    color: var(--danger);
+    background: rgba(255,85,85,0.12);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+  }
+  .card.danger .warn-banner { display: block; }
+
+  /* Form fields */
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 5px;
+  }
+
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .input-wrap:focus-within { border-color: var(--accent); }
+
+  .input-prefix {
+    padding: 0 10px;
+    font-size: 14px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  input[type=text], input[type=date], input[type=number] {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 11px 12px;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+  input[type=date] { color-scheme: dark; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Denom table */
+  .denom-table { width: 100%; border-collapse: collapse; }
+  .denom-table thead th {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 0 0 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .denom-table thead th:nth-child(2) { text-align: center; }
+  .denom-table thead th:last-child { text-align: right; }
+
+  .denom-table tbody tr { border-bottom: 1px solid var(--border); }
+  .denom-table tbody tr:last-child { border-bottom: none; }
+
+  .denom-table td {
+    padding: 7px 0;
+    vertical-align: middle;
+  }
+
+  .denom-table td:first-child {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text2);
+    width: 60px;
+  }
+
+  .denom-table td:nth-child(2) { text-align: center; }
+
+  .denom-table td:last-child {
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .denom-table td:last-child.has-value { color: var(--accent); }
+
+  .count-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    width: 64px;
+    padding: 6px 8px;
+    text-align: center;
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.15s;
+  }
+  .count-input:focus { border-color: var(--accent); }
+
+  /* Readonly rows */
+  .denom-table td.ro-count {
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Totals */
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .total-row .t-label { font-size: 13px; color: var(--text2); }
+  .total-row .t-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Big summary */
+  .big-stat {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .big-stat .bs-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; letter-spacing: 0.06em; }
+  .big-stat .bs-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .bs-value.pos { color: var(--success); }
+  .bs-value.neg { color: var(--danger); }
+
+  .bs-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  /* Grand closing */
+  .grand-card {
+    background: var(--accent-bg);
+    border: 1px solid rgba(200,240,96,0.2);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .grand-card .gc-label { font-size: 13px; color: var(--accent-dim); font-weight: 500; }
+  .grand-card .gc-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* Tomorrow card */
+  .tomorrow-card {
+    background: linear-gradient(135deg, #1a2010 0%, #131a0d 100%);
+    border: 1px solid rgba(200,240,96,0.25);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+    margin-bottom: 14px;
+  }
+  .tomorrow-card .tc-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 6px;
+  }
+  .tomorrow-card .tc-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .tomorrow-card .tc-sub { font-size: 12px; color: var(--accent-dim); margin-top: 4px; opacity: 0.7; }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  .sub-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+    margin-top: 16px;
+  }
+
+  /* Bottom nav (mobile) */
+  .bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(26,26,31,0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    z-index: 200;
+  }
+
+  .bottom-nav-inner {
+    display: flex;
+    justify-content: space-around;
+  }
+
+  .bn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+    color: var(--text3);
+    transition: color 0.15s;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .bn-item.active { color: var(--accent); }
+  .bn-item svg { width: 22px; height: 22px; }
+
+  @media (max-width: 600px) {
+    .nav-tabs { display: none; }
+    .bottom-nav { display: block; }
+    .page { padding: 16px 12px 90px; }
+    .card { padding: 14px; border-radius: 12px; }
+    .count-input { width: 56px; }
+    .tomorrow-card .tc-value { font-size: 28px; }
+  }
+
+  /* Animations */
+  .card { animation: fadeUp 0.3s ease both; }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(8px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1><span class="dot"></span>Daily Report</h1>
+  <span class="header-date" id="header-date"></span>
+</header>
+
+<nav class="nav-tabs" id="nav-tabs">
+  <div class="nav-tab active" data-page="opening">Opening</div>
+  <div class="nav-tab" data-page="closing">Closing</div>
+  <div class="nav-tab" data-page="summary">Summary</div>
+  <div class="nav-tab" data-page="difference">Difference</div>
+  <div class="nav-tab" data-page="envelope">Envelope</div>
+  <div class="nav-tab" data-page="tomorrow">Tomorrow</div>
+</nav>
+
+<!-- PAGE: Opening -->
+<div class="page active" id="page-opening">
+  <div class="card">
+    <div class="card-label">Date & Staff</div>
+    <div class="row2" style="margin-bottom:12px">
+      <div class="field">
+        <label>Date</label>
+        <div class="input-wrap"><input type="date" id="date" oninput="updateHeader()"></div>
+      </div>
+      <div class="field">
+        <label>Staff name</label>
+        <div class="input-wrap"><input type="text" id="staff" placeholder="Your name"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Opening cash</div>
+    <div class="field">
+      <label>Total opening amount</label>
+      <div class="input-wrap">
+        <span class="input-prefix">$</span>
+        <input type="number" id="opening" min="0" step="0.01" placeholder="0.00" oninput="calc()">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: Closing -->
+<div class="page" id="page-closing">
+  <div class="card">
+    <div class="card-label">Closing — all denominations</div>
+    <table class="denom-table">
+      <thead><tr><th>Denom</th><th>Count</th><th>Subtotal</th></tr></thead>
+      <tbody id="closing-body"></tbody>
+    </table>
+    <div class="total-row">
+      <span class="t-label">Total closing cash</span>
+      <span class="t-value" id="closing-total">$0.00</span>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: Summary -->
+<div class="page" id="page-summary">
+  <div class="card">
+    <div class="card-label">Cash inputs</div>
+    <div class="field">
+      <label>Grocery</label>
+      <div class="input-wrap">
+        <span class="input-prefix">$</span>
+        <input type="number" id="grocery" min="0" step="0.01" placeholder="0.00" oninput="calc()">
+      </div>
+    </div>
+    <div class="field">
+      <label>Cash sales</label>
+      <div class="input-wrap">
+        <span class="input-prefix">$</span>
+        <input type="number" id="cashsales" min="0" step="0.01" placeholder="0.00" oninput="calc()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Cash tips — coins only</div>
+    <table class="denom-table">
+      <thead><tr><th>Coin</th><th>Count</th><th>Subtotal</th></tr></thead>
+      <tbody id="tips-body"></tbody>
+    </table>
+    <div class="total-row">
+      <span class="t-label">Total tips</span>
+      <span class="t-value" id="tips-total">$0.00</span>
+    </div>
+  </div>
+
+  <div class="grand-card">
+    <div>
+      <div class="gc-label">Total closing (cash + tips)</div>
+      <div style="font-size:12px;color:var(--accent-dim);opacity:0.7;margin-top:2px;">Closing + Tips</div>
+    </div>
+    <div class="gc-value" id="grand-closing">$0.00</div>
+  </div>
+</div>
+
+<!-- PAGE: Difference -->
+<div class="page" id="page-difference">
+  <div class="card">
+    <div class="card-label">Difference</div>
+    <div class="big-stat">
+      <div class="bs-label">Closing − Opening + Grocery − Cash sales</div>
+      <div class="bs-value" id="diff-value">$0.00</div>
+      <div class="bs-sub" id="diff-label">—</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+      <div class="big-stat" style="margin-bottom:0">
+        <div class="bs-label">Closing</div>
+        <div class="bs-value" style="font-size:18px;" id="sum-closing">$0.00</div>
+      </div>
+      <div class="big-stat" style="margin-bottom:0">
+        <div class="bs-label">Opening</div>
+        <div class="bs-value" style="font-size:18px;" id="sum-opening">$0.00</div>
+      </div>
+      <div class="big-stat" style="margin-bottom:0">
+        <div class="bs-label">Grocery</div>
+        <div class="bs-value" style="font-size:18px;" id="sum-grocery">$0.00</div>
+      </div>
+      <div class="big-stat" style="margin-bottom:0">
+        <div class="bs-label">Cash sales</div>
+        <div class="bs-value" style="font-size:18px;" id="sum-cashsales">$0.00</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: Envelope -->
+<div class="page" id="page-envelope">
+  <div class="card" id="envelope-card">
+    <div class="card-label">Cash in envelope — notes only</div>
+    <div class="warn-banner">⚠ Envelope total exceeds closing cash amount.</div>
+    <table class="denom-table">
+      <thead><tr><th>Note</th><th>Count</th><th>Subtotal</th></tr></thead>
+      <tbody id="envelope-body"></tbody>
+    </table>
+    <div class="total-row">
+      <span class="t-label">Total in envelope</span>
+      <span class="t-value" id="envelope-total">$0.00</span>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: Tomorrow -->
+<div class="page" id="page-tomorrow">
+  <div class="tomorrow-card">
+    <div class="tc-label">Opening for tomorrow</div>
+    <div class="tc-value" id="tomorrow-value">$0.00</div>
+    <div class="tc-sub">Total closing (cash + tips) − Envelope</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Till breakdown — notes</div>
+    <table class="denom-table">
+      <thead><tr><th>Note</th><th>Count</th><th>Subtotal</th></tr></thead>
+      <tbody id="tomorrow-notes-body"></tbody>
+    </table>
+    <div class="divider"></div>
+    <div class="sub-label" style="margin-top:0">Coins</div>
+    <table class="denom-table">
+      <thead><tr><th>Coin</th><th>Count</th><th>Subtotal</th></tr></thead>
+      <tbody id="tomorrow-coins-body"></tbody>
+    </table>
+    <div class="total-row">
+      <span class="t-label">Till total</span>
+      <span class="t-value" id="till-total">$0.00</span>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav (mobile) -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <div class="bn-item active" data-page="opening">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>
+      </svg>Open
+    </div>
+    <div class="bn-item" data-page="closing">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+      </svg>Close
+    </div>
+    <div class="bn-item" data-page="summary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>
+      </svg>Summary
+    </div>
+    <div class="bn-item" data-page="difference">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>Diff
+    </div>
+    <div class="bn-item" data-page="envelope">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M3 8l9 6 9-6"/><rect x="3" y="6" width="18" height="13" rx="2"/>
+      </svg>Envelope
+    </div>
+    <div class="bn-item" data-page="tomorrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>Tomorrow
+    </div>
+  </div>
+</nav>
+
+<script>
+const ALL_DENOMS = [
+  { label: '$100', value: 100,  type: 'note' },
+  { label: '$50',  value: 50,   type: 'note' },
+  { label: '$20',  value: 20,   type: 'note' },
+  { label: '$10',  value: 10,   type: 'note' },
+  { label: '$5',   value: 5,    type: 'note' },
+  { label: '$2',   value: 2,    type: 'coin' },
+  { label: '$1',   value: 1,    type: 'coin' },
+  { label: '25¢',  value: 0.25, type: 'coin' },
+  { label: '10¢',  value: 0.10, type: 'coin' },
+  { label: '5¢',   value: 0.05, type: 'coin' },
+];
+const NOTES = ALL_DENOMS.filter(d => d.type === 'note');
+const COINS = ALL_DENOMS.filter(d => d.type === 'coin');
+
+function buildTable(tbodyId, prefix, denoms) {
+  const tbody = document.getElementById(tbodyId);
+  denoms.forEach((d, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${d.label}</td>
+      <td><input class="count-input" type="number" min="0" step="1" placeholder="0" id="${prefix}-count-${i}" inputmode="numeric" oninput="calc()"></td>
+      <td id="${prefix}-sub-${i}">—</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function buildReadonly(tbodyId, prefix, denoms) {
+  const tbody = document.getElementById(tbodyId);
+  denoms.forEach((d, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${d.label}</td>
+      <td class="ro-count" id="${prefix}-cnt-${i}">0</td>
+      <td id="${prefix}-sub-${i}">—</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function tableTotal(prefix, denoms) {
+  let total = 0;
+  denoms.forEach((d, i) => {
+    const cnt = parseFloat(document.getElementById(`${prefix}-count-${i}`)?.value) || 0;
+    const sub = parseFloat((cnt * d.value).toFixed(2));
+    const el = document.getElementById(`${prefix}-sub-${i}`);
+    if (el) {
+      el.textContent = cnt > 0 ? '$' + sub.toFixed(2) : '—';
+      el.className = cnt > 0 ? 'has-value' : '';
+    }
+    total += sub;
+  });
+  return parseFloat(total.toFixed(2));
+}
+
+function fmt(n) {
+  return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+}
+
+function updateHeader() {
+  const d = document.getElementById('date').value;
+  if (d) {
+    const dt = new Date(d + 'T00:00:00');
+    document.getElementById('header-date').textContent =
+      dt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+}
+
+function calc() {
+  const closing   = tableTotal('cl',  ALL_DENOMS);
+  const tips      = tableTotal('tip', COINS);
+  const envelope  = tableTotal('env', NOTES);
+  const opening   = parseFloat(document.getElementById('opening').value)   || 0;
+  const grocery   = parseFloat(document.getElementById('grocery').value)   || 0;
+  const cashsales = parseFloat(document.getElementById('cashsales').value) || 0;
+
+  const grandClosing = parseFloat((closing + tips).toFixed(2));
+  const tomorrow     = parseFloat((grandClosing - envelope).toFixed(2));
+  const diff         = parseFloat((closing - opening + grocery - cashsales).toFixed(2));
+
+  document.getElementById('closing-total').textContent  = fmt(closing);
+  document.getElementById('tips-total').textContent     = fmt(tips);
+  document.getElementById('grand-closing').textContent  = fmt(grandClosing);
+  document.getElementById('envelope-total').textContent = fmt(envelope);
+  document.getElementById('tomorrow-value').textContent = fmt(tomorrow);
+
+  document.getElementById('sum-closing').textContent   = fmt(closing);
+  document.getElementById('sum-opening').textContent   = fmt(opening);
+  document.getElementById('sum-grocery').textContent   = fmt(grocery);
+  document.getElementById('sum-cashsales').textContent = fmt(cashsales);
+
+  const dvEl = document.getElementById('diff-value');
+  const dlEl = document.getElementById('diff-label');
+  dvEl.textContent = fmt(diff);
+  dvEl.className = 'bs-value ' + (diff > 0 ? 'pos' : diff < 0 ? 'neg' : '');
+  dlEl.textContent = diff > 0 ? 'Over' : diff < 0 ? 'Short' : 'Balanced';
+
+  // Envelope warning
+  const envCard = document.getElementById('envelope-card');
+  envelope > closing ? envCard.classList.add('danger') : envCard.classList.remove('danger');
+
+  // Tomorrow till breakdown
+  let tillTotal = 0;
+  NOTES.forEach((d, i) => {
+    const clIdx = ALL_DENOMS.indexOf(d);
+    const clCnt = parseFloat(document.getElementById(`cl-count-${clIdx}`)?.value) || 0;
+    const envCnt = parseFloat(document.getElementById(`env-count-${i}`)?.value) || 0;
+    const rem = Math.max(0, clCnt - envCnt);
+    const sub = parseFloat((rem * d.value).toFixed(2));
+    const cntEl = document.getElementById(`tn-cnt-${i}`);
+    const subEl = document.getElementById(`tn-sub-${i}`);
+    if (cntEl) cntEl.textContent = rem;
+    if (subEl) { subEl.textContent = rem > 0 ? '$' + sub.toFixed(2) : '—'; subEl.className = rem > 0 ? 'has-value' : ''; }
+    tillTotal += sub;
+  });
+  COINS.forEach((d, i) => {
+    const clIdx = ALL_DENOMS.indexOf(d);
+    const clCnt = parseFloat(document.getElementById(`cl-count-${clIdx}`)?.value) || 0;
+    const tipCnt = parseFloat(document.getElementById(`tip-count-${i}`)?.value) || 0;
+    const total = clCnt + tipCnt;
+    const sub = parseFloat((total * d.value).toFixed(2));
+    const cntEl = document.getElementById(`tc-cnt-${i}`);
+    const subEl = document.getElementById(`tc-sub-${i}`);
+    if (cntEl) cntEl.textContent = total;
+    if (subEl) { subEl.textContent = total > 0 ? '$' + sub.toFixed(2) : '—'; subEl.className = total > 0 ? 'has-value' : ''; }
+    tillTotal += sub;
+  });
+  document.getElementById('till-total').textContent = fmt(parseFloat(tillTotal.toFixed(2)));
+}
+
+// Navigation
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab, .bn-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll(`[data-page="${page}"]`).forEach(t => t.classList.add('active'));
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.nav-tab, .bn-item').forEach(el => {
+  el.addEventListener('click', () => goTo(el.dataset.page));
+});
+
+// Init
+buildTable('closing-body', 'cl',  ALL_DENOMS);
+buildTable('tips-body',    'tip', COINS);
+buildTable('envelope-body','env', NOTES);
+buildReadonly('tomorrow-notes-body', 'tn', NOTES);
+buildReadonly('tomorrow-coins-body', 'tc', COINS);
+
+const today = new Date();
+document.getElementById('date').value = today.toISOString().slice(0,10);
+updateHeader();
+calc();
+</script>
+</body>
+</html>
