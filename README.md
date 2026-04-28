@@ -1,0 +1,1 @@
+# Hazu-daily-report
