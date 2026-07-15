@@ -82,6 +82,26 @@
     color: var(--text3);
   }
 
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .clear-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .clear-btn:hover { color: var(--danger); border-color: var(--danger-border); }
+
   /* Nav tabs */
   .nav-tabs {
     display: flex;
@@ -415,7 +435,10 @@
 
 <header class="site-header">
   <h1><span class="dot"></span>Daily Report</h1>
-  <span class="header-date" id="header-date"></span>
+  <div class="header-right">
+    <span class="header-date" id="header-date"></span>
+    <button class="clear-btn" onclick="clearAll()">Clear</button>
+  </div>
 </header>
 
 <nav class="nav-tabs" id="nav-tabs">
@@ -545,7 +568,7 @@
 <div class="page" id="page-envelope">
   <div class="card" id="envelope-card">
     <div class="card-label">Cash in envelope — notes only</div>
-    <div class="warn-banner">⚠ Envelope total exceeds closing cash amount.</div>
+    <div class="warn-banner">⚠ Envelope has more notes than were counted at closing.</div>
     <table class="denom-table">
       <thead><tr><th>Note</th><th>Count</th><th>Subtotal</th></tr></thead>
       <tbody id="envelope-body"></tbody>
@@ -621,17 +644,18 @@
 </nav>
 
 <script>
+// All money amounts are handled internally as integer cents; fmt() converts to dollars for display.
 const ALL_DENOMS = [
-  { label: '$100', value: 100,  type: 'note' },
-  { label: '$50',  value: 50,   type: 'note' },
-  { label: '$20',  value: 20,   type: 'note' },
-  { label: '$10',  value: 10,   type: 'note' },
-  { label: '$5',   value: 5,    type: 'note' },
-  { label: '$2',   value: 2,    type: 'coin' },
-  { label: '$1',   value: 1,    type: 'coin' },
-  { label: '25¢',  value: 0.25, type: 'coin' },
-  { label: '10¢',  value: 0.10, type: 'coin' },
-  { label: '5¢',   value: 0.05, type: 'coin' },
+  { label: '$100', value: 10000, type: 'note' },
+  { label: '$50',  value: 5000,  type: 'note' },
+  { label: '$20',  value: 2000,  type: 'note' },
+  { label: '$10',  value: 1000,  type: 'note' },
+  { label: '$5',   value: 500,   type: 'note' },
+  { label: '$2',   value: 200,   type: 'coin' },
+  { label: '$1',   value: 100,   type: 'coin' },
+  { label: '25¢',  value: 25,    type: 'coin' },
+  { label: '10¢',  value: 10,    type: 'coin' },
+  { label: '5¢',   value: 5,     type: 'coin' },
 ];
 const NOTES = ALL_DENOMS.filter(d => d.type === 'note');
 const COINS = ALL_DENOMS.filter(d => d.type === 'coin');
@@ -658,23 +682,32 @@ function buildReadonly(tbodyId, prefix, denoms) {
   });
 }
 
+function countVal(id) {
+  return Math.max(0, Math.floor(parseFloat(document.getElementById(id)?.value) || 0));
+}
+
+function moneyVal(id) {
+  return Math.max(0, Math.round((parseFloat(document.getElementById(id).value) || 0) * 100));
+}
+
 function tableTotal(prefix, denoms) {
   let total = 0;
   denoms.forEach((d, i) => {
-    const cnt = parseFloat(document.getElementById(`${prefix}-count-${i}`)?.value) || 0;
-    const sub = parseFloat((cnt * d.value).toFixed(2));
+    const cnt = countVal(`${prefix}-count-${i}`);
+    const sub = cnt * d.value;
     const el = document.getElementById(`${prefix}-sub-${i}`);
     if (el) {
-      el.textContent = cnt > 0 ? '$' + sub.toFixed(2) : '—';
+      el.textContent = cnt > 0 ? fmt(sub) : '—';
       el.className = cnt > 0 ? 'has-value' : '';
     }
     total += sub;
   });
-  return parseFloat(total.toFixed(2));
+  return total;
 }
 
-function fmt(n) {
-  return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+function fmt(cents) {
+  const s = Math.abs(cents);
+  return (cents < 0 ? '-$' : '$') + Math.floor(s / 100) + '.' + String(s % 100).padStart(2, '0');
 }
 
 function updateHeader() {
@@ -690,19 +723,47 @@ function calc() {
   const closing   = tableTotal('cl',  ALL_DENOMS);
   const tips      = tableTotal('tip', COINS);
   const envelope  = tableTotal('env', NOTES);
-  const opening   = parseFloat(document.getElementById('opening').value)   || 0;
-  const grocery   = parseFloat(document.getElementById('grocery').value)   || 0;
-  const cashsales = parseFloat(document.getElementById('cashsales').value) || 0;
+  const opening   = moneyVal('opening');
+  const grocery   = moneyVal('grocery');
+  const cashsales = moneyVal('cashsales');
 
-  const grandClosing = parseFloat((closing + tips).toFixed(2));
-  const tomorrow     = parseFloat((grandClosing - envelope).toFixed(2));
-  const diff         = parseFloat((closing - opening + grocery - cashsales).toFixed(2));
+  const grandClosing = closing + tips;
+  const diff         = closing - opening + grocery - cashsales;
+
+  // Tomorrow till breakdown: closing notes minus envelope notes, closing coins plus tips
+  let tillTotal = 0;
+  let envOverdraw = false;
+  NOTES.forEach((d, i) => {
+    const clCnt = countVal(`cl-count-${ALL_DENOMS.indexOf(d)}`);
+    const envCnt = countVal(`env-count-${i}`);
+    if (envCnt > clCnt) envOverdraw = true;
+    const rem = Math.max(0, clCnt - envCnt);
+    const sub = rem * d.value;
+    document.getElementById(`tn-cnt-${i}`).textContent = rem;
+    const subEl = document.getElementById(`tn-sub-${i}`);
+    subEl.textContent = rem > 0 ? fmt(sub) : '—';
+    subEl.className = rem > 0 ? 'has-value' : '';
+    tillTotal += sub;
+  });
+  COINS.forEach((d, i) => {
+    const total = countVal(`cl-count-${ALL_DENOMS.indexOf(d)}`) + countVal(`tip-count-${i}`);
+    const sub = total * d.value;
+    document.getElementById(`tc-cnt-${i}`).textContent = total;
+    const subEl = document.getElementById(`tc-sub-${i}`);
+    subEl.textContent = total > 0 ? fmt(sub) : '—';
+    subEl.className = total > 0 ? 'has-value' : '';
+    tillTotal += sub;
+  });
+  // Equals grandClosing − envelope whenever envelope counts are valid,
+  // and stays consistent with the till table when they are not.
+  const tomorrow = tillTotal;
 
   document.getElementById('closing-total').textContent  = fmt(closing);
   document.getElementById('tips-total').textContent     = fmt(tips);
   document.getElementById('grand-closing').textContent  = fmt(grandClosing);
   document.getElementById('envelope-total').textContent = fmt(envelope);
   document.getElementById('tomorrow-value').textContent = fmt(tomorrow);
+  document.getElementById('till-total').textContent     = fmt(tomorrow);
 
   document.getElementById('sum-closing').textContent   = fmt(closing);
   document.getElementById('sum-opening').textContent   = fmt(opening);
@@ -716,36 +777,26 @@ function calc() {
   dlEl.textContent = diff > 0 ? 'Over' : diff < 0 ? 'Short' : 'Balanced';
 
   // Envelope warning
-  const envCard = document.getElementById('envelope-card');
-  envelope > closing ? envCard.classList.add('danger') : envCard.classList.remove('danger');
+  document.getElementById('envelope-card').classList.toggle('danger', envOverdraw);
+}
 
-  // Tomorrow till breakdown
-  let tillTotal = 0;
-  NOTES.forEach((d, i) => {
-    const clIdx = ALL_DENOMS.indexOf(d);
-    const clCnt = parseFloat(document.getElementById(`cl-count-${clIdx}`)?.value) || 0;
-    const envCnt = parseFloat(document.getElementById(`env-count-${i}`)?.value) || 0;
-    const rem = Math.max(0, clCnt - envCnt);
-    const sub = parseFloat((rem * d.value).toFixed(2));
-    const cntEl = document.getElementById(`tn-cnt-${i}`);
-    const subEl = document.getElementById(`tn-sub-${i}`);
-    if (cntEl) cntEl.textContent = rem;
-    if (subEl) { subEl.textContent = rem > 0 ? '$' + sub.toFixed(2) : '—'; subEl.className = rem > 0 ? 'has-value' : ''; }
-    tillTotal += sub;
-  });
-  COINS.forEach((d, i) => {
-    const clIdx = ALL_DENOMS.indexOf(d);
-    const clCnt = parseFloat(document.getElementById(`cl-count-${clIdx}`)?.value) || 0;
-    const tipCnt = parseFloat(document.getElementById(`tip-count-${i}`)?.value) || 0;
-    const total = clCnt + tipCnt;
-    const sub = parseFloat((total * d.value).toFixed(2));
-    const cntEl = document.getElementById(`tc-cnt-${i}`);
-    const subEl = document.getElementById(`tc-sub-${i}`);
-    if (cntEl) cntEl.textContent = total;
-    if (subEl) { subEl.textContent = total > 0 ? '$' + sub.toFixed(2) : '—'; subEl.className = total > 0 ? 'has-value' : ''; }
-    tillTotal += sub;
-  });
-  document.getElementById('till-total').textContent = fmt(parseFloat(tillTotal.toFixed(2)));
+function setToday() {
+  const today = new Date();
+  document.getElementById('date').value = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
+  updateHeader();
+}
+
+// Browsers can restore yesterday's form values when the tab is revived,
+// so staff need a way to start the day from a clean sheet.
+function clearAll() {
+  if (!confirm('Clear all entered data and start a new report?')) return;
+  document.querySelectorAll('input[type=number], input[type=text]').forEach(el => el.value = '');
+  setToday();
+  calc();
 }
 
 // Navigation
@@ -768,9 +819,7 @@ buildTable('envelope-body','env', NOTES);
 buildReadonly('tomorrow-notes-body', 'tn', NOTES);
 buildReadonly('tomorrow-coins-body', 'tc', COINS);
 
-const today = new Date();
-document.getElementById('date').value = today.toISOString().slice(0,10);
-updateHeader();
+setToday();
 calc();
 </script>
 </body>
